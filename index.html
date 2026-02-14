@@ -48,7 +48,7 @@ let masterData = [];
 // =======================
 async function loadMaster(){
   try{
-    const res = await fetch(WEB_APP_URL + "?action=getMaster");
+    const res = await fetch(WEB_APP_URL + "?type=Master");
     masterData = await res.json();
 
     const pclSelect = document.getElementById("pclSelect");
@@ -196,5 +196,3 @@ loadMaster();
 
 </body>
 </html>
-
-
