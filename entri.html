@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entri Capaian Harian</title>
+<style>
+body { font-family: Arial; padding:15px; }
+input, select { width:100%; padding:10px; margin:5px 0; font-size:16px; }
+button { width:100%; padding:12px; font-size:16px; margin-top:10px; }
+.card { background:#f4f4f4; padding:10px; margin-top:10px; border-radius:8px; }
+h3 { margin-top:20px; }
+</style>
+</head>
+<body>
+
+<h2>Entri Capaian Harian</h2>
+
+<label>PCL</label>
+<select id="pclSelect"></select>
+
+<label>Tanggal</label>
+<input type="date" id="tanggal">
+
+<label>Desa</label>
+<select id="desaSelect"></select>
+
+<label>BS</label>
+<select id="bsSelect"></select>
+
+<label>Jumlah Usaha Disensus</label>
+<input type="number" id="jumlahUsaha">
+
+<label>Jumlah Usaha Online</label>
+<input type="number" id="jumlahOnline" onchange="generateOnlineForm()">
+
+<div id="onlineContainer"></div>
+
+<button onclick="submitData()">SIMPAN</button>
+
+<script>
+
+const WEB_APP_URL = "PASTE_URL_KAMU_DI_SINI";
+
+let masterData = [];
+
+// =======================
+// LOAD MASTER
+// =======================
+async function loadMaster(){
+  try{
+    const res = await fetch(WEB_APP_URL + "?action=getMaster");
+    masterData = await res.json();
+
+    const pclSelect = document.getElementById("pclSelect");
+    pclSelect.innerHTML = "<option value=''>-- Pilih PCL --</option>";
+
+    // Ambil PCL unik
+    let uniquePCL = [...new Map(masterData.map(item =>
+      [item.id_pcl, item])).values()];
+
+    uniquePCL.forEach(item=>{
+      const opt = document.createElement("option");
+      opt.value = item.id_pcl;
+      opt.textContent = item.nama_pcl;
+      pclSelect.appendChild(opt);
+    });
+
+  }catch(e){
+    alert("Gagal load master");
+  }
+}
+
+// =======================
+// SAAT PCL DIPILIH
+// =======================
+document.getElementById("pclSelect").addEventListener("change", function(){
+
+  const pcl_id = this.value;
+  const desaSelect = document.getElementById("desaSelect");
+  const bsSelect = document.getElementById("bsSelect");
+
+  desaSelect.innerHTML = "";
+  bsSelect.innerHTML = "";
+
+  const filtered = masterData.filter(m => m.id_pcl == pcl_id);
+
+  filtered.forEach(item=>{
+    const optDesa = document.createElement("option");
+    optDesa.value = item.desa;
+    optDesa.textContent = item.desa;
+    desaSelect.appendChild(optDesa);
+
+    const optBS = document.createElement("option");
+    optBS.value = item.bs;
+    optBS.textContent = item.bs;
+    bsSelect.appendChild(optBS);
+  });
+
+});
+
+// =======================
+// GENERATE ONLINE DETAIL
+// =======================
+function generateOnlineForm(){
+  const jumlah = parseInt(document.getElementById("jumlahOnline").value) || 0;
+  const container = document.getElementById("onlineContainer");
+  container.innerHTML = "";
+
+  for(let i=0;i<jumlah;i++){
+    container.innerHTML += `
+      <div class="card">
+        <h3>Usaha Online ${i+1}</h3>
+        <input placeholder="ID Usaha" class="id_usaha">
+        <select class="media_promosi">
+          <option>Media Sosial</option>
+          <option>Marketplace</option>
+          <option>Website</option>
+          <option>Aplikasi Chat</option>
+          <option>Lainnya</option>
+        </select>
+        <select class="media_transaksi">
+          <option>Marketplace</option>
+          <option>WhatsApp</option>
+          <option>Website</option>
+          <option>Aplikasi Khusus</option>
+          <option>Lainnya</option>
+        </select>
+        <select class="media_pembayaran">
+          <option>Transfer Bank</option>
+          <option>QRIS</option>
+          <option>E-Wallet</option>
+          <option>COD</option>
+          <option>Lainnya</option>
+        </select>
+        <select class="omzet">
+          <option>≤ 2 M</option>
+          <option>2 – 15 M</option>
+          <option>15 – 50 M</option>
+          <option>> 50 M</option>
+        </select>
+      </div>
+    `;
+  }
+}
+
+// =======================
+// SUBMIT
+// =======================
+async function submitData(){
+
+  const payload = {
+    pcl_id: document.getElementById("pclSelect").value,
+    tanggal: document.getElementById("tanggal").value,
+    desa: document.getElementById("desaSelect").value,
+    bs: document.getElementById("bsSelect").value,
+    jumlah_usaha: document.getElementById("jumlahUsaha").value,
+    jumlah_online: document.getElementById("jumlahOnline").value,
+    detail_online: []
+  };
+
+  document.querySelectorAll(".card").forEach(card=>{
+    payload.detail_online.push({
+      id_usaha: card.querySelector(".id_usaha").value,
+      media_promosi: card.querySelector(".media_promosi").value,
+      media_transaksi: card.querySelector(".media_transaksi").value,
+      media_pembayaran: card.querySelector(".media_pembayaran").value,
+      omzet: card.querySelector(".omzet").value
+    });
+  });
+
+  try{
+    const res = await fetch(WEB_APP_URL,{
+      method:"POST",
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+
+    if(result.status==="success"){
+      alert("Data berhasil disimpan");
+      location.reload();
+    }else{
+      alert(result.message);
+    }
+
+  }catch(e){
+    alert("Gagal kirim data");
+  }
+}
+
+// =======================
+document.getElementById("tanggal").valueAsDate = new Date();
+loadMaster();
+
+</script>
+
+</body>
+</html>
